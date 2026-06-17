@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To Do 앱</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      width: 100%;
+      max-width: 480px;
+      padding: 32px 28px;
+      height: fit-content;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 24px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-row input:focus {
+      border-color: #4f8ef7;
+    }
+
+    .input-row button {
+      padding: 10px 18px;
+      background: #4f8ef7;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .input-row button:hover {
+      background: #2d6fd4;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .filter-row button {
+      padding: 5px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 20px;
+      background: #fff;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #555;
+    }
+
+    .filter-row button.active {
+      background: #4f8ef7;
+      border-color: #4f8ef7;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .todo-list {
+      list-style: none;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 10px;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background 0.15s;
+    }
+
+    .todo-item:last-child {
+      border-bottom: none;
+    }
+
+    .todo-item:hover {
+      background: #f8f9ff;
+      border-radius: 8px;
+    }
+
+    .todo-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #4f8ef7;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .todo-text {
+      flex: 1;
+      font-size: 0.95rem;
+      color: #333;
+      word-break: break-all;
+    }
+
+    .todo-item.done .todo-text {
+      text-decoration: line-through;
+      color: #aaa;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.2s, background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .delete-btn:hover {
+      color: #e74c3c;
+      background: #ffeaea;
+    }
+
+    .empty {
+      text-align: center;
+      color: #bbb;
+      font-size: 0.9rem;
+      padding: 32px 0;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      font-size: 0.82rem;
+      color: #aaa;
+    }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      color: #e74c3c;
+      font-size: 0.82rem;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    .clear-btn:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📝 To Do 앱</h1>
+    <div class="input-row">
+      <input type="text" id="todoInput" placeholder="할 일을 입력하세요..." maxlength="100">
+      <button onclick="addTodo()">추가</button>
+    </div>
+    <div class="filter-row">
+      <button class="active" onclick="setFilter('all', this)">전체</button>
+      <button onclick="setFilter('active', this)">미완료</button>
+      <button onclick="setFilter('done', this)">완료</button>
+    </div>
+    <ul class="todo-list" id="todoList"></ul>
+    <div class="footer">
+      <span id="countText"></span>
+      <button class="clear-btn" onclick="clearDone()">완료 항목 삭제</button>
+    </div>
+  </div>
+
+  <script>
+    let todos = JSON.parse(localStorage.getItem('todos') || '[]');
+    let filter = 'all';
+
+    function save() {
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+
+    function render() {
+      const list = document.getElementById('todoList');
+      const filtered = todos.filter(t => {
+        if (filter === 'active') return !t.done;
+        if (filter === 'done') return t.done;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="empty">할 일이 없습니다 🎉</div>';
+      } else {
+        list.innerHTML = filtered.map(t => `
+          <li class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}">
+            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggle(${t.id})">
+            <span class="todo-text">${escapeHtml(t.text)}</span>
+            <button class="delete-btn" onclick="remove(${t.id})">✕</button>
+          </li>
+        `).join('');
+      }
+
+      const remaining = todos.filter(t => !t.done).length;
+      document.getElementById('countText').textContent = `미완료 ${remaining}개 / 전체 ${todos.length}개`;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function addTodo() {
+      const input = document.getElementById('todoInput');
+      const text = input.value.trim();
+      if (!text) return;
+      todos.push({ id: Date.now(), text, done: false });
+      save();
+      render();
+      input.value = '';
+      input.focus();
+    }
+
+    function toggle(id) {
+      const t = todos.find(t => t.id === id);
+      if (t) { t.done = !t.done; save(); render(); }
+    }
+
+    function remove(id) {
+      todos = todos.filter(t => t.id !== id);
+      save();
+      render();
+    }
+
+    function clearDone() {
+      todos = todos.filter(t => !t.done);
+      save();
+      render();
+    }
+
+    function setFilter(f, btn) {
+      filter = f;
+      document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render();
+    }
+
+    document.getElementById('todoInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addTodo();
+    });
+
+    render();
+  </script>
+</body>
+</html>
